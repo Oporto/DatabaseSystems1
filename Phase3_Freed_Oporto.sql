@@ -573,19 +573,31 @@ AFTER UPDATE ON Admission
 FOR EACH ROW
 WHEN (new.LeaveDate IS NOT NULL)
 DECLARE
-  CURSOR Examines IS Select Doctor.FirstName, Doctor.LastName,
-    Examine.ExamineComment FROM Doctor, Examine
+  firstname varchar2(30);
+  lastname varchar2(30);
+  address varchar2(50);
+  n_examines number;
+  iterative number;
+  doc_firstname varchar2(30);
+  doc_lastname varchar2(30);
+  exam_comment varchar2(500);
+BEGIN
+
+  SELECT FirstName, LastName, Address INTO firstname, lastname, address FROM Patient WHERE SSN = :new.PatientSSN;
+  dbms_output.put_line('Patient: ' || firstname || ' ' || lastname || ' of address '||address||' left the hospital. These are the comments from the doctors: ');
+  
+  SELECT Count(*) INTO n_examines FROM Doctor, Examine
     WHERE Examine.AdmissionNum = :new.AdmissionNum AND
     Examine.DoctorID = Doctor.DoctorID;
-  CURSOR PatientLeaving IS SELECT FirstName, LastName, Address FROM Patient WHERE SSN = :new.PatientSSN;
-BEGIN
-  FOR patient IN PatientLeaving
+  iterative := 1;
+  WHILE iterative <= n_examines
   LOOP
-    dbms_output.put_line('Patient: ' || patient.FirstName || ' ' || patient.LastName || ' of address '||patient.Address||' left the hospital. These are the comments from the doctors: ');
-  END LOOP;
-  FOR exam IN Examines
-  LOOP
-    dbms_output.put_line('Doctor: '|| exam.FirstName || ' ' || exam.LastName || ' gave comment: ' || exam.ExamineComment);
+    SELECT Doctor.FirstName, Doctor.LastName,
+    Examine.ExamineComment INTO doc_firstname, doc_lastname, exam_comment FROM Doctor, Examine
+    WHERE Examine.AdmissionNum = :new.AdmissionNum AND
+    Examine.DoctorID = Doctor.DoctorID AND ROWNUM = iterative ORDER BY Doctor.DoctorID;
+    dbms_output.put_line('Doctor: '|| doc_firstname || ' ' || doc_lastname || ' gave comment: ' || exam_comment;
+    iterative := iterative + 1;
   END LOOP;
 END;
 /
